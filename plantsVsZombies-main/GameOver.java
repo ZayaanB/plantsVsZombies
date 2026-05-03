@@ -31,7 +31,9 @@ class GameOver extends JPanel implements MouseListener {
 	  }
 	
 	  public void paintComponent(Graphics g) {
-		super.paintComponents(g);
+		// FIX 4: was super.paintComponents(g) — the plural form paints child components,
+		// not the panel background, so the background image never rendered.
+		super.paintComponent(g);
 		g.drawImage(bgImg.getImage(), 0, 0, getWidth(), getHeight(), null);
 	  }
 	  
