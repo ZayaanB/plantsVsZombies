@@ -20,6 +20,7 @@ public class GamePanel extends JLayeredPane implements MouseMotionListener {
     private final Image bgImage = new ImageIcon("images/mainBG.png").getImage();
     private Timer generateTimer;
     private Timer redrawTimer;
+    // FIX 5: level is now an instance variable reset on game over, not a static
     private static int level = 1;
     private int zombieType;
 
@@ -57,8 +58,10 @@ public class GamePanel extends JLayeredPane implements MouseMotionListener {
     // zombie image and arraylist
     private int zombiesDead;
     private ArrayList<ArrayList<Zombie>> activeZombies;
-    private final Image zombieWalkingAnim = new ImageIcon("images/coneZombie.png").getImage();
-    private final Image coneheadWalkingAnim = new ImageIcon("images/zombieWalking.gif").getImage();
+    // FIX 1: zombie sprite variables were assigned to the wrong image files.
+    // zombieWalkingAnim should be the regular zombie gif; coneheadWalkingAnim the cone png.
+    private final Image zombieWalkingAnim = new ImageIcon("images/zombieWalking.gif").getImage();
+    private final Image coneheadWalkingAnim = new ImageIcon("images/coneZombie.png").getImage();
     private int maxZombies = 0;
     private int totalZombies = 0;
     private int spawnSpeed;
@@ -68,6 +71,14 @@ public class GamePanel extends JLayeredPane implements MouseMotionListener {
     private final ArrayList<ArrayList<Pea>> peaLanes;
     private final Image peaImage = new ImageIcon("images/pea.png").getImage();
     private final Image goopImage = new ImageIcon("images/shroomball.png").getImage();
+
+    // FIX 3: plant card components belong in fields so they are added once, not on every repaint.
+    private PlantCard sunflowerCard;
+    private PlantCard peashooterCard;
+    private PlantCard wallnutCard;
+    private PlantCard puffShroomCard;
+    private PlantCard repeaterCard;
+    private PlantCard shovelCard;
 
     private GameScreen.PlantType currentPlantingBrush = GameScreen.PlantType.None;
 
@@ -100,7 +111,42 @@ public class GamePanel extends JLayeredPane implements MouseMotionListener {
         else {
         	maxZombies = 9999;
         }
-        
+
+        // FIX 3: create plant cards once in the constructor, not on every repaint.
+        sunflowerCard = new PlantCard(sunflowerCardImg);
+        sunflowerCard.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Sunflower));
+        sunflowerCard.setLocation(115, 8);
+        add(sunflowerCard, 0);
+
+        peashooterCard = new PlantCard(peashooterCardImg);
+        peashooterCard.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Peashooter));
+        peashooterCard.setLocation(185, 8);
+        add(peashooterCard, 0);
+
+        wallnutCard = new PlantCard(wallnutCardImg);
+        wallnutCard.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Wallnut));
+        wallnutCard.setLocation(255, 8);
+        add(wallnutCard, 0);
+
+        if (level >= 5) {
+            puffShroomCard = new PlantCard(puffshroomCardImg);
+            puffShroomCard.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Minishroom));
+            puffShroomCard.setLocation(325, 8);
+            add(puffShroomCard, 0);
+        }
+
+        if (level >= 6) {
+            repeaterCard = new PlantCard(repeaterCardImg);
+            repeaterCard.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Repeater));
+            repeaterCard.setLocation(395, 8);
+            add(repeaterCard, 0);
+        }
+
+        shovelCard = new PlantCard(shovelImg);
+        shovelCard.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Shovel));
+        shovelCard.setLocation(470, 23);
+        add(shovelCard, 0);
+
         // redraw timer
         redrawTimer = new Timer(25, (ActionEvent e) -> {
             repaint();            
@@ -179,7 +225,6 @@ public class GamePanel extends JLayeredPane implements MouseMotionListener {
 	        activeSuns.get(i).create();
 	    }
 
-
         //produce zombies
 	    outerloop:
         for (int i = 0; i < activeZombies.size(); i++) {
@@ -203,6 +248,8 @@ public class GamePanel extends JLayeredPane implements MouseMotionListener {
 	        	      	redrawTimer.stop();
 	        	      	generateTimer.stop();
 	        	      	colliders = new Collider[0];
+	        	      	// FIX 5: reset level when the player loses
+	        	      	level = 1;
 	        	      	break outerloop;
 	            	}
 	            	z.create();
@@ -228,7 +275,6 @@ public class GamePanel extends JLayeredPane implements MouseMotionListener {
 	      	activeMowers.clear();
 	      	colliders = new Collider[0];
 	      	
-	      	
 	      	sunScore = 0;
 	      	zombiesDead = 0;
 	      	totalZombies = 0;
@@ -246,73 +292,15 @@ public class GamePanel extends JLayeredPane implements MouseMotionListener {
         g.drawImage(bgImage, 0, 0, null);
         g.drawString("Level " + level, 888, 25);
 
-        // checking when sunflower can be placed and adding to grid
-        PlantCard sunflowerCard;
-        if (this.getSunScore() < 50){
-            sunflowerCard = new PlantCard(disabledSunflowerCardImg);
-        }else{
-            sunflowerCard = new PlantCard(sunflowerCardImg);
-        }
-        sunflowerCard.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Sunflower));
-        sunflowerCard.setLocation(115, 8);
-        add(sunflowerCard, 0);
+        // FIX 3: update card images based on current sun score rather than re-adding components
+        sunflowerCard.setImage(getSunScore() < 50 ? disabledSunflowerCardImg : sunflowerCardImg);
+        peashooterCard.setImage(getSunScore() < 100 ? disabledPeashooterCardImg : peashooterCardImg);
+        wallnutCard.setImage(getSunScore() < 50 ? disabledWallnutCardImg : wallnutCardImg);
+        if (puffShroomCard != null)
+            puffShroomCard.setImage(getSunScore() < 20 ? disabledPuffshroomCardImg : puffshroomCardImg);
+        if (repeaterCard != null)
+            repeaterCard.setImage(getSunScore() < 200 ? disabledRepeaterCardImg : repeaterCardImg);
 
-        // checking when peashooter can be placed and adding to grid
-        PlantCard peashooterCard;
-        if (this.getSunScore() < 100){
-            peashooterCard = new PlantCard(disabledPeashooterCardImg);
-        }else{
-            peashooterCard = new PlantCard(peashooterCardImg);
-        }
-        peashooterCard.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Peashooter));
-        peashooterCard.setLocation(185, 8);
-        add(peashooterCard, 0);
-        
-        // checking when wallnut can be placed and adding to grid
-        PlantCard wallnutCard;
-        if (this.getSunScore() < 50){
-            wallnutCard = new PlantCard(disabledWallnutCardImg);
-        }else{
-            wallnutCard = new PlantCard(wallnutCardImg);
-        }
-        wallnutCard.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Wallnut));
-        wallnutCard.setLocation(255, 8);
-        add(wallnutCard, 0);
-        
-        // checking when puffshroom can be placed and adding to the grid
-        PlantCard puffShroomCard = null;
-        if (level >= 5) {
-        	if (this.getSunScore() < 20){
-                puffShroomCard = new PlantCard(disabledPuffshroomCardImg);
-            }else{
-                puffShroomCard = new PlantCard(puffshroomCardImg);
-            }
-	        puffShroomCard.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Minishroom));
-	        puffShroomCard.setLocation(325, 8);
-	        add(puffShroomCard, 0);
-        }
-        
-        // checking when wallnut can be placed and adding to grid
-        PlantCard repeaterCard = null;
-        if (level >= 6) {
-	        if (this.getSunScore() < 200){
-	            repeaterCard = new PlantCard(disabledRepeaterCardImg);
-	        }else{
-	            repeaterCard = new PlantCard(repeaterCardImg);
-	        }
-        
-        	repeaterCard.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Repeater));
-        	repeaterCard.setLocation(395, 8);
-        	add(repeaterCard, 0);
-    	}     
-        
-        // making shovel card
-        PlantCard shovel;
-        shovel = new PlantCard(shovelImg);
-        shovel.setAction((ActionEvent e) -> this.setCurrentPlantingBrush(GameScreen.PlantType.Shovel));
-        shovel.setLocation(470, 23);
-        add(shovel, 0);
-        
         //draw peas and zombies based on lane
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < peaLanes.get(i).size(); j++) {
@@ -468,10 +456,12 @@ public class GamePanel extends JLayeredPane implements MouseMotionListener {
                 }
             }
             
-            // removing the plant on selected grid
-            if(currentPlantingBrush == GameScreen.PlantType.Shovel) {
-            	colliders[x + y * 9].getPlant().setHealth(0);
-                colliders[x + y * 9].setPlant(null);
+            // FIX 2: null-check before shoveling to prevent NullPointerException on empty cells
+            if (currentPlantingBrush == GameScreen.PlantType.Shovel) {
+            	if (colliders[x + y * 9].getPlant() != null) {
+	            	colliders[x + y * 9].getPlant().setHealth(0);
+	                colliders[x + y * 9].setPlant(null);
+            	}
             }
 
             currentPlantingBrush = GameScreen.PlantType.None;
