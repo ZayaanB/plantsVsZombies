@@ -30,7 +30,8 @@ class LevelPassed extends JPanel implements MouseListener {
 	  }
 	
 	  public void paintComponent(Graphics g) {
-		super.paintComponents(g);
+		// FIX 4: was super.paintComponents(g) — wrong plural method
+		super.paintComponent(g);
 		g.drawImage(bgImg.getImage(), 0, 0, getWidth(), getHeight(), null);
 	  }
 	  
